@@ -5,6 +5,7 @@ pipeline {
         // Define a version number. This can be managed dynamically.
         // Using the build number for dynamic versioning.
         APP_VERSION = "1.0.${env.BUILD_NUMBER}"
+        PYTHON_HOME = 'C:\\Users\\Suraj\\AppData\\Local\\Python\\pythoncore-3.14-64'
     }
 
     stages {
@@ -20,10 +21,10 @@ pipeline {
                 script {
                     // Use 'bat' for Windows commands.
                     // Ensure python is in your system's PATH.
-                    bat 'python -m venv venv'
-                    // Activate the virtual environment and install dependencies.
-                    bat 'venv\\Scripts\\activate.bat && pip install --upgrade pip'
-                    bat 'venv\\Scripts\\activate.bat && pip install -r requirements.txt'
+                    bat '"%PYTHON_HOME%\\python.exe" -m venv venv'
+                    // Use the python/pip from inside the venv for all subsequent steps
+                    bat 'venv\\Scripts\\python.exe -m pip install --upgrade pip'
+                    bat 'venv\\Scripts\\pip.exe install -r requirements.txt'
                 }
             }
         }
@@ -31,7 +32,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 // Run tests with pytest and generate a coverage report
-                bat 'venv\\Scripts\\activate.bat && pytest --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
+                bat 'venv\\Scripts\\pytest.ex --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
             }
             post {
                 always {
