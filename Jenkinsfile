@@ -1,6 +1,13 @@
 pipeline {
     agent any // We will define the agent for each stage
 
+    parameters {
+        // This boolean parameter will show up in the Jenkins UI as a checkbox.
+        // It allows us to manually trigger the one-time setup for the Blue-Green environment.
+        // By default, it's false, so the setup stage is skipped on normal runs.
+        booleanParam(name: 'SETUP_BLUE_GREEN', defaultValue: false, description: 'Check this to run the one-time setup for the Blue-Green environment.')
+    }
+
     environment {
         // Use the commit hash for a unique, traceable image tag.
         // We define it here so it's available in all stages.
