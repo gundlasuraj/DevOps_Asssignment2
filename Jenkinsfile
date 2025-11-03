@@ -32,7 +32,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 // Run tests with pytest and generate a coverage report
-                bat 'venv\\Scripts\\pytest.ex --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
+                bat 'venv\\Scripts\\pytest.exe --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
             }
             post {
                 always {
