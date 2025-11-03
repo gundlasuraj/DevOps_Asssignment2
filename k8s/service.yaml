@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fitness-app-svc
+spec:
+  type: NodePort # Use NodePort to expose the service on Minikube
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: fitness-app
+    # This color label is the key to the Blue-Green switch.
+    # We will initially point it to 'blue'.
+    color: blue

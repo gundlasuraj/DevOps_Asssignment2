@@ -1,11 +1,20 @@
 pipeline {
     agent any
+    // Use a Docker agent to ensure a consistent and clean build environment
+    agent {
+        docker {
+            image 'python:3.11-slim'
+            args '-u root' // Run as root to install packages if needed
+        }
+    }
 
     environment {
-        // Define a version number. This can be managed dynamically.
-        // Using the build number for dynamic versioning.
-        APP_VERSION = "1.0.${env.BUILD_NUMBER}"
-        PYTHON_HOME = 'C:\\Users\\Suraj\\AppData\\Local\\Python\\pythoncore-3.14-64'
+        // Ensure Docker Hub username is set for image tagging
+        DOCKER_HUB_USERNAME = 'surajgundla'
+        // The name of your application's image
+        IMAGE_NAME = "${DOCKER_HUB_USERNAME}/fitness-app"
+        // Kubernetes namespace to deploy to
+        K8S_NAMESPACE = 'default'
     }
 
     stages {
@@ -18,51 +27,62 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                script {
-                    // Use 'bat' for Windows commands.
-                    // Ensure python is in your system's PATH.
-                    bat '"%PYTHON_HOME%\\python.exe" -m venv venv'
-                    // Use the python/pip from inside the venv for all subsequent steps
-                    bat 'venv\\Scripts\\python.exe -m pip install --upgrade pip'
-                    bat 'venv\\Scripts\\pip.exe install -r requirements.txt'
-                }
+                // Commands are now run inside the python:3.11-slim container
+                sh 'pip install --no-cache-dir -r requirements.txt'
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Run tests with pytest and generate a coverage report
-                bat 'venv\\Scripts\\pytest.exe --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
-            }
-        }
-
-        stage('Archive Artifacts') {
-            steps {
-                // Use the built-in 'tar' command to create a compressed archive on Windows.
-                // The 'a' flag automatically selects the archive format based on the extension (.zip).
-                bat "tar -a -cf ACEestFitness-v${env.APP_VERSION}.zip ACEest_Fitness.py test_ACEest_Fitness.py requirements.txt"
-                archiveArtifacts artifacts: "*.zip", fingerprint: true
+                // The JUnit plugin can publish these test results
+                sh 'pip install pytest-cov'
+                sh 'pytest --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
             }
         }
 
         stage('Build and Push Docker Image') {
+            // This stage needs a different agent that has Docker installed.
+            agent any
             steps {
-                script {
-                    // Ensure the Docker Pipeline plugin is installed in Jenkins
-                    // The 'dockerhub-credentials' ID must match the one you create in Jenkins
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        
-                        // Define your Docker Hub username and image name
-                        def imageName = "surajgundla/aceest-fitness:${env.BUILD_NUMBER}"
-                        
-                        // Build the Docker image from the Dockerfile in the current directory
-                        def customImage = docker.build(imageName, '.')
-                        
-                        // Push the image to Docker Hub
-                        customImage.push()
+                steps {
+                    script {
+                        // The 'dockerhub-credentials' ID must match the one you created in Jenkins
+                        docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
+                            def customImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", '.')
+                            // Push the uniquely tagged image
+                            customImage.push()
+                            // Also tag this build as 'latest' and push
+                            customImage.push('latest')
+                        }
                     }
                 }
             }
         }
-    }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                // Use the withKubeConfig wrapper to securely access your cluster
+                // 'kubeconfig' is the ID of your Secret File credential in Jenkins
+                withKubeConfig([credentialsId: 'kubeconfig']) {
+                    sh 'kubectl get nodes' // Verify connection
+
+                    // Apply the service. This usually only needs to be done once.
+                    // The --dry-run and -o yaml flags are useful for debugging.
+                    sh 'kubectl apply -f k8s/service.yaml'
+
+                    // Apply the deployment. This will create or update it.
+                    sh 'kubectl apply -f k8s/deployment.yaml'
+
+                    // This is the key command for automation.
+                    // It updates the image of the running deployment to the new version we just built.
+                    echo "Updating deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh "kubectl set image deployment/aceest-fitness-app aceest-fitness-container=${IMAGE_NAME}:${IMAGE_TAG}"
+
+                    // Wait for the deployment to complete its rollout.
+                    // The pipeline will fail here if the new pods can't start.
+                    sh 'kubectl rollout status deployment/aceest-fitness-app'
+                }
+            }
+        }
+    } 
 }

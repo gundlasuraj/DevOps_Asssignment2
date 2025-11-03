@@ -11,10 +11,6 @@ COPY . .
 # Install dependencies, including testing tools
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Run tests using pytest. This step validates the code.
-RUN pytest --cov=. --cov-report=xml
-
-
 # ===== Final/Production Stage =====
 # Use a slim image for a smaller final footprint
 FROM python:3.11-slim as final
@@ -24,8 +20,8 @@ WORKDIR /app
 
 # Copy only the installed packages from the builder stage
 COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
-# Copy only the application file
-COPY ACEest_Fitness.py .
+# Copy only the application file from the builder stage
+COPY --from=builder /app/ACEest_Fitness.py .
 
 # Define the command to run your application
 CMD ["python", "ACEest_Fitness.py"]
