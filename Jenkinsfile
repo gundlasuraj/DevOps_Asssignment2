@@ -85,8 +85,8 @@ pipeline {
                             // This block executes on the very first run when the service is not found.
                             echo "Service ${K8S_SERVICE_NAME} not found. Assuming first-time deployment."
                             echo "Defaulting to deploy 'blue' as the first environment."
-                            LIVE_COLOR = 'green'      // The color we will switch FROM (doesn't exist yet)
-                            INACTIVE_COLOR = 'blue'   // The color we will deploy TO
+                            LIVE_COLOR = 'blue'       // The service will point to blue by default.
+                            INACTIVE_COLOR = 'green'  // We will deploy the new version to green.
 
                             // Apply all configurations to create the environment from scratch.
                             bat "kubectl apply -f service.yaml"
