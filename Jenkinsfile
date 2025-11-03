@@ -34,13 +34,6 @@ pipeline {
                 // Run tests with pytest and generate a coverage report
                 bat 'venv\\Scripts\\pytest.exe --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
             }
-            post {
-                always {
-                    // Publish the test results and coverage report
-                    junit 'test-results.xml'
-                    publishCoverage adapters: [coberturaAdapter(path: 'coverage.xml')]
-                }
-            }
         }
 
         stage('Archive Artifacts') {
