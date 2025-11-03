@@ -11,6 +11,11 @@ COPY . .
 # Install dependencies, including testing tools
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Run tests using pytest. This step validates the code.
+# The docker build command will fail here if tests do not pass.
+RUN pytest --cov=. --cov-report=xml
+
+
 # ===== Final/Production Stage =====
 # Use a slim image for a smaller final footprint
 FROM python:3.11-slim as final

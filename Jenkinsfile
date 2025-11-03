@@ -1,19 +1,11 @@
 pipeline {
-    // Use a Docker agent to ensure a consistent and clean build environment
-    agent {
-        docker {
-            image 'python:3.11-slim'
-            args '-u root' // Run as root to install packages if needed
-        }
-    }
+    agent any // We will define the agent for each stage
 
     environment {
-        // Ensure Docker Hub username is set for image tagging
-        DOCKER_HUB_USERNAME = 'surajgundla'
-        // The name of your application's image
-        IMAGE_NAME = "${DOCKER_HUB_USERNAME}/fitness-app"
-        // Kubernetes namespace to deploy to
-        K8S_NAMESPACE = 'default'
+        // Use the commit hash for a unique, traceable image tag.
+        // We define it here so it's available in all stages.
+        IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+        IMAGE_NAME = "surajgundla/aceest-fitness"
     }
 
     stages {
@@ -25,40 +17,49 @@ pipeline {
         }
 
         stage('Install Dependencies') {
+            agent {
+                docker { image 'python:3.11-slim' }
+            }
             steps {
                 // Commands are now run inside the python:3.11-slim container
                 sh 'pip install --no-cache-dir -r requirements.txt'
             }
         }
 
-        stage('Run Tests') {
+        stage('Test and Build Image') {
+            // This stage runs on a Docker-capable agent
+            agent any
             steps {
-                // The JUnit plugin can publish these test results
-                sh 'pip install pytest-cov'
-                sh 'pytest --cov=ACEest_Fitness --cov-report=xml --junitxml=test-results.xml'
+                // Use a multi-stage Dockerfile that includes testing
+                // This is a more modern approach that keeps the pipeline cleaner
+                // and makes the build process more portable.
+                sh 'docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" -f dockerfile .'
             }
         }
 
-        stage('Build and Push Docker Image') {
-            // This stage needs a different agent that has Docker installed.
+        stage('Push Docker Image') {
+            // This stage also needs a Docker-capable agent
             agent any
             steps {
-                steps {
-                    script {
-                        // The 'dockerhub-credentials' ID must match the one you created in Jenkins
-                        docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                            def customImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", '.')
-                            // Push the uniquely tagged image
-                            customImage.push()
-                            // Also tag this build as 'latest' and push
-                            customImage.push('latest')
-                        }
+                // This post-build 'input' step is great for manual verification
+                // before pushing an image that might be used by others.
+                input "Image built. Proceed with push to Docker Hub?"
+                script {
+                    // The 'dockerhub-credentials' ID must match the one you created in Jenkins
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
+                        
+                        def customImage = docker.image("${IMAGE_NAME}:${IMAGE_TAG}")
+                        // Push the uniquely tagged image
+                        customImage.push()
+                        // Also tag this build as 'latest' and push
                     }
                 }
             }
         }
 
         stage('Deploy to Kubernetes') {
+            // This stage needs kubectl configured
+            agent any
             steps {
                 // Use the withKubeConfig wrapper to securely access your cluster
                 // 'kubeconfig' is the ID of your Secret File credential in Jenkins
@@ -74,7 +75,7 @@ pipeline {
 
                     // This is the key command for automation.
                     // It updates the image of the running deployment to the new version we just built.
-                    echo "Updating deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "Updating Kubernetes deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
                     sh "kubectl set image deployment/aceest-fitness-app aceest-fitness-container=${IMAGE_NAME}:${IMAGE_TAG}"
 
                     // Wait for the deployment to complete its rollout.
