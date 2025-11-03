@@ -4,8 +4,10 @@ pipeline {
     environment {
         // Use the commit hash for a unique, traceable image tag.
         // We define it here so it's available in all stages.
-        IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+        IMAGE_TAG = bat(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
         IMAGE_NAME = "surajgundla/aceest-fitness"
+        // Define the name of the container and deployment for easier reference
+        K8S_DEPLOYMENT_NAME = 'aceest-fitness-app'
     }
 
     stages {
@@ -16,15 +18,7 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            agent {
-                docker { image 'python:3.11-slim' }
-            }
-            steps {
-                // Commands are now run inside the python:3.11-slim container
-                sh 'pip install --no-cache-dir -r requirements.txt'
-            }
-        }
+    
 
         stage('Test and Build Image') {
             // This stage runs on a Docker-capable agent
@@ -33,7 +27,7 @@ pipeline {
                 // Use a multi-stage Dockerfile that includes testing
                 // This is a more modern approach that keeps the pipeline cleaner
                 // and makes the build process more portable.
-                sh 'docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" -f dockerfile .'
+                bat "docker build -t \"${IMAGE_NAME}:${IMAGE_TAG}\" -f Dockerfile ."
             }
         }
 
@@ -48,9 +42,9 @@ pipeline {
                     // The 'dockerhub-credentials' ID must match the one you created in Jenkins
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
                         
-                        def customImage = docker.image("${IMAGE_NAME}:${IMAGE_TAG}")
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
                         // Push the uniquely tagged image
-                        customImage.push()
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push('latest')
                         // Also tag this build as 'latest' and push
                     }
                 }
@@ -64,23 +58,23 @@ pipeline {
                 // Use the withKubeConfig wrapper to securely access your cluster
                 // 'kubeconfig' is the ID of your Secret File credential in Jenkins
                 withKubeConfig([credentialsId: 'kubeconfig']) {
-                    sh 'kubectl get nodes' // Verify connection
+                    bat 'kubectl get nodes' // Verify connection
 
                     // Apply the service. This usually only needs to be done once.
                     // The --dry-run and -o yaml flags are useful for debugging.
-                    sh 'kubectl apply -f k8s/service.yaml'
+                    bat 'kubectl apply -f k8s/service.yaml'
 
                     // Apply the deployment. This will create or update it.
-                    sh 'kubectl apply -f k8s/deployment.yaml'
+                    bat 'kubectl apply -f k8s/deployment.yaml'
 
                     // This is the key command for automation.
                     // It updates the image of the running deployment to the new version we just built.
                     echo "Updating Kubernetes deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                    sh "kubectl set image deployment/aceest-fitness-app aceest-fitness-container=${IMAGE_NAME}:${IMAGE_TAG}"
+                    bat "kubectl set image deployment/aceest-fitness-app aceest-fitness-container=${IMAGE_NAME}:${IMAGE_TAG}"
 
                     // Wait for the deployment to complete its rollout.
                     // The pipeline will fail here if the new pods can't start.
-                    sh 'kubectl rollout status deployment/aceest-fitness-app'
+                    bat 'kubectl rollout status deployment/aceest-fitness-app'
                 }
             }
         }
