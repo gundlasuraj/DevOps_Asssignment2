@@ -1,5 +1,4 @@
 pipeline {
-    agent any
     // Use a Docker agent to ensure a consistent and clean build environment
     agent {
         docker {
