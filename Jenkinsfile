@@ -49,6 +49,7 @@ pipeline {
                 // This post-build 'input' step is great for manual verification
                 // before pushing an image that might be used by others.
                 //input "Image built. Proceed with push to Docker Hub?"
+                echo "Pushing the image to Docker Hub..."
                 script {
                     // The 'dockerhub-credentials' ID must match the one you created in Jenkins
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
@@ -69,6 +70,13 @@ pipeline {
                 // Use the withKubeConfig wrapper to securely access your cluster
                 // 'kubeconfig' is the ID of your Secret File credential in Jenkins
                 withKubeConfig([credentialsId: 'kubeconfig']) {
+                    // === 0. Ensure all components exist ===
+                    // `kubectl apply` is idempotent: it creates if not present, or updates if it is.
+                    // This makes the pipeline robust for the first run and all subsequent runs.
+                    bat "kubectl apply -f service.yaml"
+                    bat "kubectl apply -f deployment-blue.yaml"
+                    bat "kubectl apply -f deployment-green.yaml"
+                    
                     script {
                         // === 1. Determine which color is LIVE ===
                         echo "Checking which color is live..."
