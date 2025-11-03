@@ -76,7 +76,7 @@ pipeline {
                     bat "kubectl apply -f service.yaml"
                     bat "kubectl apply -f deployment-blue.yaml"
                     bat "kubectl apply -f deployment-green.yaml"
-                    
+
                     script {
                         // === 1. Determine which color is LIVE ===
                         echo "Checking which color is live..."
@@ -114,10 +114,9 @@ pipeline {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
                     script {
                         // === 5. Switch the service to point to the new color ===
-                        // This is the "Blue-Green" switch. It's an atomic operation.
-                        def patchCmd = """
-                        kubectl patch service ${K8S_SERVICE_NAME} -p '{"spec":{"selector":{"color":"${INACTIVE_COLOR}"}}}'
-                        """
+                        // On Windows, the JSON payload for the patch command must use escaped double quotes.
+                        // The entire -p argument is wrapped in a single set of double quotes.
+                        def patchCmd = "kubectl patch service ${K8S_SERVICE_NAME} -p \"{\\\"spec\\\":{\\\"selector\\\":{\\\"color\\\":\\\"${INACTIVE_COLOR}\\\"}}}\""
                         echo "Switching live traffic to ${INACTIVE_COLOR}..."
                         bat patchCmd
                         
