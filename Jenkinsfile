@@ -70,20 +70,6 @@ pipeline {
             }
         }
 
-        stage('One-Time Setup') {
-            // This stage runs only if you manually trigger it with the 'SETUP_BLUE_GREEN' parameter.
-            // It's for initializing the environment the very first time.
-            when { expression { return params.SETUP_BLUE_GREEN } }
-            steps {
-                withKubeConfig([credentialsId: 'kubeconfig']) {
-                    echo "Running one-time setup: Applying all service and deployment configurations."
-                    bat "kubectl apply -f service.yaml"
-                    bat "kubectl apply -f deployment-blue.yaml"
-                    bat "kubectl apply -f deployment-green.yaml"
-                }
-            }
-        }
-
         stage('Deploy to Kubernetes') {
             // This stage needs kubectl configured
             agent any
@@ -92,13 +78,27 @@ pipeline {
 
                     script {
                         // === 1. Determine which color is LIVE ===
-                        echo "Checking which color is live..."
-                        LIVE_COLOR = bat(returnStdout: true, script: "kubectl get svc ${K8S_SERVICE_NAME} -o jsonpath='{.spec.selector.color}'").trim()
-                        
-                        if (LIVE_COLOR == 'blue') {
-                            INACTIVE_COLOR = 'green'
-                        } else {
-                            INACTIVE_COLOR = 'blue'
+                        try {
+                            echo "Checking which color is live..."
+                            // This command will fail if the service doesn't exist, triggering the catch block.
+                            LIVE_COLOR = bat(returnStdout: true, script: "kubectl get svc ${K8S_SERVICE_NAME} -o jsonpath='{.spec.selector.color}'").trim()
+                            
+                            if (LIVE_COLOR == 'blue') {
+                                INACTIVE_COLOR = 'green'
+                            } else {
+                                INACTIVE_COLOR = 'blue'
+                            }
+                        } catch (Exception e) {
+                            // This block executes on the very first run when the service is not found.
+                            echo "Service ${K8S_SERVICE_NAME} not found. Assuming first-time deployment."
+                            echo "Defaulting to deploy 'blue' as the first environment."
+                            LIVE_COLOR = 'green'      // The color we will switch FROM (doesn't exist yet)
+                            INACTIVE_COLOR = 'blue'   // The color we will deploy TO
+
+                            // Apply all configurations to create the environment from scratch.
+                            bat "kubectl apply -f service.yaml"
+                            bat "kubectl apply -f deployment-blue.yaml"
+                            bat "kubectl apply -f deployment-green.yaml"
                         }
                         echo "Live color is: ${LIVE_COLOR}. Deploying to inactive color: ${INACTIVE_COLOR}."
                     }
