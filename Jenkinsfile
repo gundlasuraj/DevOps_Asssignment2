@@ -44,5 +44,25 @@ pipeline {
                 archiveArtifacts artifacts: "*.zip", fingerprint: true
             }
         }
+
+        stage('Build and Push Docker Image') {
+            steps {
+                script {
+                    // Ensure the Docker Pipeline plugin is installed in Jenkins
+                    // The 'dockerhub-credentials' ID must match the one you create in Jenkins
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
+                        
+                        // Define your Docker Hub username and image name
+                        def imageName = "surajgundla/aceest-fitness:${env.BUILD_NUMBER}"
+                        
+                        // Build the Docker image from the Dockerfile in the current directory
+                        def customImage = docker.build(imageName, '.')
+                        
+                        // Push the image to Docker Hub
+                        customImage.push()
+                    }
+                }
+            }
+        }
     }
 }
