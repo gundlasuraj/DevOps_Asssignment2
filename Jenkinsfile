@@ -1,13 +1,6 @@
 pipeline {
     agent any // We will define the agent for each stage
 
-    parameters {
-        // This boolean parameter will show up in the Jenkins UI as a checkbox.
-        // It allows us to manually trigger the one-time setup for the Blue-Green environment.
-        // By default, it's false, so the setup stage is skipped on normal runs.
-        booleanParam(name: 'SETUP_BLUE_GREEN', defaultValue: false, description: 'Check this to run the one-time setup for the Blue-Green environment.')
-    }
-
     environment {
         // Use the commit hash for a unique, traceable image tag.
         // We define it here so it's available in all stages.
@@ -104,8 +97,6 @@ pipeline {
                     }
 
                     // === 2. Apply the inactive deployment with the new image ===
-                    // This ensures the deployment exists and then updates its image.
-                    bat "kubectl apply -f deployment-${INACTIVE_COLOR}.yaml"
                     
                     echo "Updating Kubernetes deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
                     bat "kubectl set image deployment/aceest-fitness-app-${INACTIVE_COLOR} ${K8S_CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}"
