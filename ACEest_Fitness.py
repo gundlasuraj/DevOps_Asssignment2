@@ -2,17 +2,6 @@ import tkinter as tk
 from tkinter import messagebox
 from workout_tracker import WorkoutTracker # Import from the new logic file
 
-def get_workout_list_text(self):
-        """Formats the list of workouts for display."""
-        if not self.workouts:
-            return "No workouts logged yet."
-
-        workout_list = "Logged Workouts:\n"
-        for i, entry in enumerate(self.workouts):
-            workout_list += f"{i+1}. {entry['workout']} - {entry['duration']} minutes\n"
-        return workout_list
-
-
 class FitnessTrackerApp:
     def __init__(self, master):
         self.master = master
@@ -58,8 +47,19 @@ class FitnessTrackerApp:
             messagebox.showerror("Error", message)
 
     def view_workouts(self):
-        workout_list = self.tracker.get_workout_list_text()
-        messagebox.showinfo("Workouts", workout_list)
+        workout_text = self._get_workout_list_text()
+        messagebox.showinfo("Workouts", workout_text)
+
+    def _get_workout_list_text(self):
+        """Formats the list of workouts for display in the UI."""
+        workouts = self.tracker.get_workouts()
+        if not workouts:
+            return "No workouts logged yet."
+
+        workout_list_str = "Logged Workouts:\n"
+        for i, entry in enumerate(workouts):
+            workout_list_str += f"{i+1}. {entry['workout']} - {entry['duration']} minutes\n"
+        return workout_list_str
 
 
 if __name__ == "__main__":

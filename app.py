@@ -13,7 +13,7 @@ def index():
 @app.route('/workouts', methods=['GET'])
 def get_workouts():
     """Returns the list of all logged workouts."""
-    return jsonify(tracker.workouts)
+    return jsonify(tracker.get_workouts())
 
 @app.route('/workouts', methods=['POST'])
 def add_workout():

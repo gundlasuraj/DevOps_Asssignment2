@@ -19,3 +19,7 @@ class WorkoutTracker:
             return True, f"'{workout}' added successfully!"
         except (ValueError, TypeError):
             return False, "Duration must be a valid number."
+
+    def get_workouts(self):
+        """Returns the list of workouts."""
+        return self.workouts
