@@ -26,8 +26,12 @@ pipeline {
             steps {
                 // Use a multi-stage Dockerfile that includes testing
                 // This is a more modern approach that keeps the pipeline cleaner
-                // and makes the build process more portable.
-                bat "docker build -t \"${IMAGE_NAME}:${IMAGE_TAG}\" -f Dockerfile ."
+                / and makes the build process more portable. We use a script
+                // block to build the command safely for the Windows shell.
+                script {
+                    def dockerBuildCmd = "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f Dockerfile ."
+                    bat dockerBuildCmd
+                }
             }
         }
 
