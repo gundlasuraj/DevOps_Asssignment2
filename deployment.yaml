@@ -13,7 +13,7 @@ spec:
         app: aceest-fitness-app
     spec:
       containers:
-      - name: aceest-fitness-container
+      - name: aceest-fitness-container # This name is required by kubectl set image
         image: surajgundla/aceest-fitness:latest # This will be updated by the pipeline
         ports:
         - containerPort: 8080 # Example port for a web app

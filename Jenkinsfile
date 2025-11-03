@@ -4,10 +4,13 @@ pipeline {
     environment {
         // Use the commit hash for a unique, traceable image tag.
         // We define it here so it's available in all stages.
-        IMAGE_TAG = bat(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+        // Using a script block is more robust for capturing command output.
+        IMAGE_TAG = "" 
         IMAGE_NAME = "surajgundla/aceest-fitness"
         // Define the name of the container and deployment for easier reference
         K8S_DEPLOYMENT_NAME = 'aceest-fitness-app'
+        // This must match the 'name' field in your deployment.yaml container spec
+        K8S_CONTAINER_NAME = 'aceest-fitness-container'
     }
 
     stages {
@@ -15,6 +18,11 @@ pipeline {
             steps {
                 // Get the latest code from the repository
                 checkout scm
+                // Set the IMAGE_TAG after checkout to ensure we have the git repo
+                script {
+                    IMAGE_TAG = bat(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    echo "Building with IMAGE_TAG: ${IMAGE_TAG}"
+                }
             }
         }
 
@@ -25,8 +33,7 @@ pipeline {
             agent any
             steps {
                 // Use a multi-stage Dockerfile that includes testing
-                // This is a more modern approach that keeps the pipeline cleaner
-                // block to build the command safely for the Windows shell.
+                // This is a more modern approach that keeps the pipeline cleaner.
                 script {
                     def dockerBuildCmd = "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f Dockerfile ."
                     bat dockerBuildCmd
@@ -73,7 +80,7 @@ pipeline {
                     // This is the key command for automation.
                     // It updates the image of the running deployment to the new version we just built.
                     echo "Updating Kubernetes deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                    bat "kubectl set image deployment/aceest-fitness-app aceest-fitness-container=${IMAGE_NAME}:${IMAGE_TAG}"
+                      bat "kubectl set image deployment/${K8S_DEPLOYMENT_NAME} ${K8S_CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}"
 
                     // Wait for the deployment to complete its rollout.
                     // The pipeline will fail here if the new pods can't start.
