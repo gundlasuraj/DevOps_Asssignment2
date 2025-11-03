@@ -53,12 +53,26 @@ pipeline {
                 script {
                     // The 'dockerhub-credentials' ID must match the one you created in Jenkins
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        
-                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
-                        // Push the uniquely tagged image
-                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push('latest')
-                        // Also tag this build as 'latest' and push
+                        def img = docker.image("${IMAGE_NAME}:${IMAGE_TAG}")
+                        // Push the uniquely tagged image first
+                        img.push()
+                        // Then, tag the same image as 'latest' and push that tag
+                        img.push('latest')
                     }
+                }
+            }
+        }
+
+        stage('One-Time Setup') {
+            // This stage runs only if you manually trigger it with the 'SETUP_BLUE_GREEN' parameter.
+            // It's for initializing the environment the very first time.
+            when { expression { return params.SETUP_BLUE_GREEN } }
+            steps {
+                withKubeConfig([credentialsId: 'kubeconfig']) {
+                    echo "Running one-time setup: Applying all service and deployment configurations."
+                    bat "kubectl apply -f service.yaml"
+                    bat "kubectl apply -f deployment-blue.yaml"
+                    bat "kubectl apply -f deployment-green.yaml"
                 }
             }
         }
@@ -67,15 +81,7 @@ pipeline {
             // This stage needs kubectl configured
             agent any
             steps {
-                // Use the withKubeConfig wrapper to securely access your cluster
-                // 'kubeconfig' is the ID of your Secret File credential in Jenkins
                 withKubeConfig([credentialsId: 'kubeconfig']) {
-                    // === 0. Ensure all components exist ===
-                    // `kubectl apply` is idempotent: it creates if not present, or updates if it is.
-                    // This makes the pipeline robust for the first run and all subsequent runs.
-                    bat "kubectl apply -f service.yaml"
-                    bat "kubectl apply -f deployment-blue.yaml"
-                    bat "kubectl apply -f deployment-green.yaml"
 
                     script {
                         // === 1. Determine which color is LIVE ===
