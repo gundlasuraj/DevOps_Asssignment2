@@ -5,12 +5,13 @@ FROM python:3.11 as builder
 # Set the working directory
 WORKDIR /app
 
-# Copy all files to the app directory
-COPY . .
-
 # Install dependencies, including testing tools
+# Copy requirements first to leverage Docker layer caching
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Now copy the rest of the application files
+COPY . .
 # Run tests using pytest. This step validates the code.
 # The docker build command will fail here if tests do not pass.
 RUN pytest --cov=. --cov-report=xml

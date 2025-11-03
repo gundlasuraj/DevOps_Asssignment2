@@ -20,7 +20,7 @@ pipeline {
                 checkout scm
                 // Set the IMAGE_TAG after checkout to ensure we have the git repo
                 script {
-                    IMAGE_TAG = bat(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    IMAGE_TAG = bat(returnStdout: true, script: '@echo off & git rev-parse --short HEAD').trim()
                     echo "Building with IMAGE_TAG: ${IMAGE_TAG}"
                 }
             }
