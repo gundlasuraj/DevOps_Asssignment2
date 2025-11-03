@@ -47,7 +47,7 @@ pipeline {
             steps {
                 // This post-build 'input' step is great for manual verification
                 // before pushing an image that might be used by others.
-                input "Image built. Proceed with push to Docker Hub?"
+                //input "Image built. Proceed with push to Docker Hub?"
                 script {
                     // The 'dockerhub-credentials' ID must match the one you created in Jenkins
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {

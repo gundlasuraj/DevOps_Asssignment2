@@ -30,6 +30,13 @@ class TestWorkoutTracker(unittest.TestCase):
         self.assertEqual(message, "Duration must be a positive number.")
         self.assertEqual(len(self.tracker.workouts), 0)
 
+    def test_add_workout_negative_duration(self):
+        """Test adding a workout with a negative duration."""
+        success, message = self.tracker.add_workout("Time Travel", "-10")
+        self.assertFalse(success)
+        self.assertEqual(message, "Duration must be a positive number.")
+        self.assertEqual(len(self.tracker.workouts), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
