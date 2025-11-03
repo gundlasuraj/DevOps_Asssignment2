@@ -80,11 +80,12 @@ pipeline {
                     // This is the key command for automation.
                     // It updates the image of the running deployment to the new version we just built.
                     echo "Updating Kubernetes deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                      bat "kubectl set image deployment/${K8S_DEPLOYMENT_NAME} ${K8S_CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}"
+                    bat "kubectl set image deployment/${K8S_DEPLOYMENT_NAME} ${K8S_CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}"
 
                     // Wait for the deployment to complete its rollout.
                     // The pipeline will fail here if the new pods can't start.
                     bat 'kubectl rollout status deployment/aceest-fitness-app'
+                    bat 'kubectl get pods' // List pods to verify
                 }
             }
         }
