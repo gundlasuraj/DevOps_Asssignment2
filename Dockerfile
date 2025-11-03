@@ -1,17 +1,31 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+# ===== Builder/Test Stage =====
+# Use a full Python image that includes build tools and tkinter support
+FROM python:3.11 as builder
+
+# Set the working directory
+WORKDIR /app
+
+# Copy all files to the app directory
+COPY . .
+
+# Install dependencies, including testing tools
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Run tests using pytest. This step validates the code.
+RUN pytest --cov=. --cov-report=xml
+
+
+# ===== Final/Production Stage =====
+# Use a slim image for a smaller final footprint
+FROM python:3.11-slim as final
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
-COPY requirements.txt .
-
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application's code into the container at /app
-COPY . .
+# Copy only the installed packages from the builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
+# Copy only the application file
+COPY ACEest_Fitness.py .
 
 # Define the command to run your application
 CMD ["python", "ACEest_Fitness.py"]
