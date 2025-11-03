@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from ACEest_Fitness import WorkoutTracker
+from workout_tracker import WorkoutTracker
 
 # Initialize the Flask app and the workout tracker
 app = Flask(__name__)

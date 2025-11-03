@@ -27,7 +27,7 @@ WORKDIR /app
 # Copy only the installed packages from the builder stage
 COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 # Copy only the application file from the builder stage
-COPY --from=builder /app/ACEest_Fitness.py . 
+COPY --from=builder /app/workout_tracker.py . 
 COPY --from=builder /app/app.py .
 
 # Define the command to run your application
