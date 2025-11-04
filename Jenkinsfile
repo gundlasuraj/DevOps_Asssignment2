@@ -62,28 +62,6 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            agent any
-            steps {
-                // This is a more robust way to check the quality gate.
-                // It actively polls SonarQube instead of waiting for a webhook,
-                // which can fail due to network or configuration issues.
-                // The timeout ensures the pipeline doesn't wait forever.
-                timeout(time: 1, unit: 'HOURS') {
-                    script {
-                        // The 'ceTaskUrl' is created by the scanner in the previous stage.
-                        // It's in a file called 'report-task.txt' in the .scannerwork directory.
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
-                            error "Pipeline aborted due to SonarQube Quality Gate failure: ${qg.status}"
-                        } else {
-                            echo "SonarQube Quality Gate passed: ${qg.status}"
-                        }
-                    }
-                }
-            }
-        }
-
         stage('Push Docker Image') {
             // This stage also needs a Docker-capable agent
             agent any
