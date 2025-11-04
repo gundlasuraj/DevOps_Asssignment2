@@ -44,13 +44,12 @@ pipeline {
 
         stage('SonarQube Analysis') {
             agent any
-            environment {
-                scannerHome = tool 'sonarqube-endpoint';
+            tools {
+                // This name must match the name of the SonarQube Scanner tool in Global Tool Configuration
+                tool name: 'sonarqube-endpoint', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
             }
             steps {
-                // 'sonar-scanner' must be configured in Jenkins > Global Tool Configuration
-                // 'sonarqube-endpoint' is the name of the SonarQube server configuration in Jenkins
-                withSonarQubeEnv(credentialsId: 'sonarqube', installationName: 'sonarqube-endpoint') {
+                withSonarQubeEnv('sonarqube-endpoint') {
                     // The scanner executable is now in the PATH
                     bat 'sonar-scanner.bat'
                 }
