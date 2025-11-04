@@ -1,12 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
 
 class FitnessTrackerApp:
     def __init__(self, master):
         self.master = master
         master.title("ACEest Fitness & Gym Tracker")
-        master.geometry("650x600")
+        master.geometry("800x650")
         master.resizable(False, False)
 
         # Initialize workout dictionary
@@ -20,21 +23,23 @@ class FitnessTrackerApp:
         self.log_tab = tk.Frame(self.notebook, bg="white")
         self.chart_tab = tk.Frame(self.notebook, bg="white")
         self.diet_tab = tk.Frame(self.notebook, bg="white")
+        self.progress_tab = tk.Frame(self.notebook, bg="white")
 
         self.notebook.add(self.log_tab, text="🏋️ Log Workouts")
         self.notebook.add(self.chart_tab, text="📊 Workout Chart")
         self.notebook.add(self.diet_tab, text="🥗 Diet Chart")
+        self.notebook.add(self.progress_tab, text="📈 Progress Tracker")
 
         # Initialize sections
         self.create_log_tab()
         self.create_workout_chart_tab()
         self.create_diet_chart_tab()
+        self.create_progress_tab()
 
     # ------------------ LOG TAB ------------------ #
     def create_log_tab(self):
         tk.Label(self.log_tab, text="🏋️ ACEest Fitness & Gym Tracker", font=("Helvetica", 16, "bold"), bg="white").pack(pady=10)
 
-        # Category Selector
         self.category_var = tk.StringVar(value="Workout")
         tk.Label(self.log_tab, text="Select Category:", font=("Arial", 12), bg="white").pack()
         self.category_menu = ttk.Combobox(self.log_tab, textvariable=self.category_var, values=list(self.workouts.keys()), state="readonly")
@@ -64,7 +69,6 @@ class FitnessTrackerApp:
         self.status_label.pack(side=tk.BOTTOM, fill=tk.X)
 
     def add_workout(self):
-        """Add a workout entry to the log."""
         category = self.category_var.get()
         workout = self.workout_entry.get().strip()
         duration_str = self.duration_entry.get().strip()
@@ -89,10 +93,13 @@ class FitnessTrackerApp:
         self.workout_entry.delete(0, tk.END)
         self.duration_entry.delete(0, tk.END)
         self.status_label.config(text=f"Added {workout} ({duration} min) to {category}!")
+
         messagebox.showinfo("Success", f"{workout} added to {category} category successfully!")
 
+        # Refresh progress chart
+        self.update_progress_charts()
+
     def view_summary(self):
-        """Show a categorized summary of all sessions."""
         if not any(self.workouts.values()):
             messagebox.showinfo("Summary", "No sessions logged yet!")
             return
@@ -115,15 +122,6 @@ class FitnessTrackerApp:
 
         tk.Label(summary_window, text=f"\nTotal Time Spent: {total_time} minutes", font=("Arial", 12, "bold"), fg="#28a745").pack(pady=10)
 
-        # Motivational Note
-        if total_time < 30:
-            msg = "Good start! Keep moving 💪"
-        elif total_time < 60:
-            msg = "Nice effort! You're building consistency 🔥"
-        else:
-            msg = "Excellent dedication! Keep up the great work 🏆"
-        tk.Label(summary_window, text=msg, font=("Arial", 12, "italic"), fg="#555").pack(pady=5)
-
     # ------------------ WORKOUT CHART TAB ------------------ #
     def create_workout_chart_tab(self):
         tk.Label(self.chart_tab, text="🏋️ Personalized Workout Chart", font=("Helvetica", 16, "bold"), bg="white").pack(pady=10)
@@ -144,7 +142,7 @@ class FitnessTrackerApp:
         tk.Label(self.diet_tab, text="🥗 Best Diet Chart for Fitness Goals", font=("Helvetica", 16, "bold"), bg="white").pack(pady=10)
 
         diet_plans = {
-            "Weight Loss": ["Oatmeal with Fruits", "Grilled Chicken Salad", "Vegetable Soup", "Brown Rice & Stir-fry Veggies"],
+            "Weight Loss": ["Oatmeal with Fruits", "Grilled Chicken Salad", "Vegetable Soup", "Brown Rice & Veggies"],
             "Muscle Gain": ["Egg Omelet", "Chicken Breast", "Quinoa & Beans", "Protein Shake", "Greek Yogurt with Nuts"],
             "Endurance": ["Banana & Peanut Butter", "Whole Grain Pasta", "Sweet Potatoes", "Salmon & Avocado", "Trail Mix"]
         }
@@ -153,6 +151,42 @@ class FitnessTrackerApp:
             tk.Label(self.diet_tab, text=f"{goal} Plan:", font=("Arial", 13, "bold"), bg="white", fg="#28a745").pack(anchor="w", padx=20, pady=5)
             for food in foods:
                 tk.Label(self.diet_tab, text=f"• {food}", font=("Arial", 11), bg="white").pack(anchor="w", padx=40)
+
+    # ------------------ PROGRESS TAB ------------------ #
+    def create_progress_tab(self):
+        tk.Label(self.progress_tab, text="📈 Personal Progress Tracker", font=("Helvetica", 16, "bold"), bg="white").pack(pady=10)
+        self.progress_canvas = None
+        self.update_progress_charts()
+
+    def update_progress_charts(self):
+        """Dynamically update progress visualizations."""
+        for widget in self.progress_tab.winfo_children():
+            if isinstance(widget, FigureCanvasTkAgg):
+                widget.get_tk_widget().destroy()
+
+        totals = {cat: sum(entry['duration'] for entry in sessions) for cat, sessions in self.workouts.items()}
+
+        fig = Figure(figsize=(7, 4), dpi=100)
+        ax1 = fig.add_subplot(121)
+        ax2 = fig.add_subplot(122)
+
+        categories = list(totals.keys())
+        values = list(totals.values())
+
+        # Bar Chart
+        ax1.bar(categories, values, color=["#007bff", "#28a745", "#ffc107"])
+        ax1.set_title("Time Spent per Category")
+        ax1.set_ylabel("Minutes")
+
+        # Pie Chart
+        if sum(values) > 0:
+            ax2.pie(values, labels=categories, autopct="%1.1f%%", startangle=90, colors=["#007bff", "#28a745", "#ffc107"])
+            ax2.set_title("Workout Distribution")
+
+        self.progress_canvas = FigureCanvasTkAgg(fig, master=self.progress_tab)
+        self.progress_canvas.draw()
+        self.progress_canvas.get_tk_widget().pack()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
