@@ -42,6 +42,27 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            agent any
+            steps {
+                // 'sonar-scanner' must be configured in Jenkins > Global Tool Configuration
+                // 'sonarqube-endpoint' is the name of the SonarQube server configuration in Jenkins
+                withSonarQubeEnv('sonarqube-endpoint') {
+                    // The scanner executable is now in the PATH
+                    bat 'sonar-scanner.bat'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            agent any
+            steps {
+                // This step will pause the pipeline and wait for SonarQube to report the Quality Gate status.
+                // If the quality gate fails, this step will fail the pipeline.
+                waitForQualityGate abortPipeline: true
+            }
+        }
+
         stage('Push Docker Image') {
             // This stage also needs a Docker-capable agent
             agent any
