@@ -44,6 +44,10 @@ pipeline {
 
         stage('SonarQube Analysis') {
             agent any
+            tools {
+                // This name must match the name of the SonarQube Scanner tool in Global Tool Configuration
+                tool name: 'sonarqube-endpoint-tool', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+            }
             steps {
                 withSonarQubeEnv('sonarqube-endpoint') {
                     // The scanner executable is now in the PATH
