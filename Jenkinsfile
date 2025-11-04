@@ -89,9 +89,9 @@ pipeline {
                             INACTIVE_COLOR = 'green'  // We will deploy the new version to green.
 
                             // Apply all configurations to create the environment from scratch.
-                            bat "kubectl apply -f service.yaml"
-                            bat "kubectl apply -f deployment-blue.yaml"
-                            bat "kubectl apply -f deployment-green.yaml"
+                            bat "kubectl apply -f k8s/service.yaml"
+                            bat "kubectl apply -f k8s/deployment-blue.yaml"
+                            bat "kubectl apply -f k8s/deployment-green.yaml"
                         }
                         echo "Live color is: ${LIVE_COLOR}. Deploying to inactive color: ${INACTIVE_COLOR}."
                     }

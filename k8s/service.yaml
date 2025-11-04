@@ -1,15 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: fitness-app-svc
+  name: aceest-fitness-app-svc
 spec:
-  type: NodePort # Use NodePort to expose the service on Minikube
+  type: NodePort
+  selector:
+    app: aceest-fitness-app
+    color: green # Initially, point to the green deployment
   ports:
   - port: 80
     targetPort: 8080
-    protocol: TCP
-  selector:
-    app: fitness-app
-    # This color label is the key to the Blue-Green switch.
-    # We will initially point it to 'blue'.
-    color: blue
