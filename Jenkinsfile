@@ -95,22 +95,22 @@ pipeline {
                         // Set pipeline variables based on the determined cluster state
                         LIVE_COLOR = currentLiveColorFromCluster
                         INACTIVE_COLOR = (LIVE_COLOR == 'blue') ? 'green' : 'blue'
-                        }
                         echo "Live color is: ${LIVE_COLOR}. Deploying to inactive color: ${INACTIVE_COLOR}."
+                        
+                        // === 2. Apply the inactive deployment with the new image ===
+                        
+                        echo "Updating Kubernetes deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                        bat "kubectl set image deployment/aceest-fitness-app-${INACTIVE_COLOR} ${K8S_CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}"
+    
+                        // === 3. Wait for the new deployment to be ready ===
+                        // The pipeline will fail here if the new pods can't start, preventing a bad release.
+                        echo "Waiting for deployment rollout to complete..."
+                        bat "kubectl rollout status deployment/aceest-fitness-app-${INACTIVE_COLOR}"
+                        echo "Deployment successful."
                     }
-
-                    // === 2. Apply the inactive deployment with the new image ===
-                    
-                    echo "Updating Kubernetes deployment to image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                    bat "kubectl set image deployment/aceest-fitness-app-${INACTIVE_COLOR} ${K8S_CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}"
-
-                    // === 3. Wait for the new deployment to be ready ===
-                    // The pipeline will fail here if the new pods can't start, preventing a bad release.
-                    bat "kubectl rollout status deployment/aceest-fitness-app-${INACTIVE_COLOR}"
-                }
+                } 
             }
         }
-
         stage('Promote to Live') {
             agent any
             steps {
@@ -137,6 +137,6 @@ pipeline {
                     }
                 }
             }
-        }
-    } 
+        } 
+    }
 }
