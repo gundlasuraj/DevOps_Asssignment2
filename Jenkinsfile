@@ -74,24 +74,27 @@ pipeline {
                         try {
                             echo "Checking which color is live..."
                             // This command will fail if the service doesn't exist, triggering the catch block.
-                            LIVE_COLOR = bat(returnStdout: true, script: "kubectl get svc ${K8S_SERVICE_NAME} -o jsonpath='{.spec.selector.color}'").trim()
+                            currentLiveColorFromCluster = bat(returnStdout: true, script: "kubectl get svc ${K8S_SERVICE_NAME} -o jsonpath='{.spec.selector.color}'").trim()
+                            echo "Service ${K8S_SERVICE_NAME} currently points to: ${currentLiveColorFromCluster}"
                             
-                            if (LIVE_COLOR == 'blue') {
-                                INACTIVE_COLOR = 'green'
-                            } else {
-                                INACTIVE_COLOR = 'blue'
-                            }
                         } catch (Exception e) {
                             // This block executes on the very first run when the service is not found.
                             echo "Service ${K8S_SERVICE_NAME} not found. Assuming first-time deployment."
-                            echo "Defaulting to deploy 'blue' as the first environment."
-                            LIVE_COLOR = 'blue'       // The service will point to blue by default.
-                            INACTIVE_COLOR = 'green'  // We will deploy the new version to green.
+                        
 
                             // Apply all configurations to create the environment from scratch.
                             bat "kubectl apply -f k8s/service.yaml"
                             bat "kubectl apply -f k8s/deployment-blue.yaml"
                             bat "kubectl apply -f k8s/deployment-green.yaml"
+                            
+                            // After initial apply, the service will point to 'green' as per k8s/service.yaml
+                            currentLiveColorFromCluster = 'green'
+                            echo "Initial setup complete. Service now points to: ${currentLiveColorFromCluster}"
+                        }
+
+                        // Set pipeline variables based on the determined cluster state
+                        LIVE_COLOR = currentLiveColorFromCluster
+                        INACTIVE_COLOR = (LIVE_COLOR == 'blue') ? 'green' : 'blue'
                         }
                         echo "Live color is: ${LIVE_COLOR}. Deploying to inactive color: ${INACTIVE_COLOR}."
                     }
