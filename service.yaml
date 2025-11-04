@@ -6,7 +6,7 @@ spec:
   type: NodePort
   selector:
     app: aceest-fitness-app
-    color: blue # Initially, point to the blue deployment
+    color: green # Initially, point to the green deployment
   ports:
   - port: 80
     targetPort: 8080
