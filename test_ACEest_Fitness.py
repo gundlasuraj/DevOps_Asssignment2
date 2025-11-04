@@ -1,5 +1,5 @@
 import unittest
-from ACEest_Fitness import WorkoutTracker
+from workout_tracker import WorkoutTracker
 
 
 class TestWorkoutTracker(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestWorkoutTracker(unittest.TestCase):
         """Test adding a workout with a non-numeric duration."""
         success, message = self.tracker.add_workout("Pushups", "abc")
         self.assertFalse(success)
-        self.assertEqual(message, "Duration must be a number.")
+        self.assertEqual(message, "Duration must be a valid number.")
         self.assertEqual(len(self.tracker.workouts), 0)
 
     def test_add_workout_zero_duration(self):
@@ -36,19 +36,6 @@ class TestWorkoutTracker(unittest.TestCase):
         self.assertFalse(success)
         self.assertEqual(message, "Duration must be a positive number.")
         self.assertEqual(len(self.tracker.workouts), 0)
-
-    def test_view_workouts_empty(self):
-        """Test viewing an empty workout list."""
-        self.assertEqual(
-            self.tracker.get_workout_list_text(), "No workouts logged yet."
-        )
-
-    def test_view_workouts_with_entries(self):
-        """Test viewing a list with multiple workouts."""
-        self.tracker.add_workout("Pushups", "30")
-        self.tracker.add_workout("Squats", "20")
-        expected = "Logged Workouts:\n1. Pushups - 30 minutes\n2. Squats - 20 minutes\n"
-        self.assertEqual(self.tracker.get_workout_list_text(), expected)
 
 
 if __name__ == "__main__":

@@ -1,38 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-
-
-class WorkoutTracker:
-    """Handles the business logic for tracking workouts, independent of the UI."""
-
-    def __init__(self):
-        self.workouts = []
-
-    def add_workout(self, workout, duration_str):
-        """Validates and adds a workout. Returns a tuple (bool, str) for success and a message."""
-        if not workout or not duration_str:
-            return False, "Please enter both workout and duration."
-
-        try:
-            duration = int(duration_str)
-            if duration <= 0:
-                return False, "Duration must be a positive number."
-
-            self.workouts.append({"workout": workout, "duration": duration})
-            return True, f"'{workout}' added successfully!"
-        except ValueError:
-            return False, "Duration must be a number."
-
-    def get_workout_list_text(self):
-        """Formats the list of workouts for display."""
-        if not self.workouts:
-            return "No workouts logged yet."
-
-        workout_list = "Logged Workouts:\n"
-        for i, entry in enumerate(self.workouts):
-            workout_list += f"{i+1}. {entry['workout']} - {entry['duration']} minutes\n"
-        return workout_list
-
+from workout_tracker import WorkoutTracker # Import from the new logic file
 
 class FitnessTrackerApp:
     def __init__(self, master):
@@ -79,11 +47,24 @@ class FitnessTrackerApp:
             messagebox.showerror("Error", message)
 
     def view_workouts(self):
-        workout_list = self.tracker.get_workout_list_text()
-        messagebox.showinfo("Workouts", workout_list)
+        workout_text = self._get_workout_list_text()
+        messagebox.showinfo("Workouts", workout_text)
+
+    def _get_workout_list_text(self):
+        """Formats the list of workouts for display in the UI."""
+        workouts = self.tracker.get_workouts()
+        if not workouts:
+            return "No workouts logged yet."
+
+        workout_list_str = "Logged Workouts:\n"
+        for i, entry in enumerate(workouts):
+            workout_list_str += f"{i+1}. {entry['workout']} - {entry['duration']} minutes\n"
+        return workout_list_str
 
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = FitnessTrackerApp(root)
     root.mainloop()
+
+# End of ACEest_Fitness.py
