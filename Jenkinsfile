@@ -42,6 +42,26 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            agent any
+            tools {
+                // This name must match the name of the SonarQube Scanner tool in Global Tool Configuration
+                'hudson.plugins.sonar.SonarRunnerInstallation' 'sonarqube-endpoint-tool'
+            }
+            steps {
+                // Manually set the PATH to include the SonarQube Scanner's bin directory.
+                // This is a more robust method on Windows agents.
+                script {
+                    def scannerHome = tool 'sonarqube-endpoint-tool'
+                    withEnv(["PATH+SONAR=${scannerHome}\\bin"]) {
+                        withSonarQubeEnv('sonarqube-endpoint') {
+                            bat 'sonar-scanner.bat'
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Push Docker Image') {
             // This stage also needs a Docker-capable agent
             agent any
