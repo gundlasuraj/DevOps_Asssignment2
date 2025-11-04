@@ -53,8 +53,10 @@ pipeline {
                 // This is a more robust method on Windows agents.
                 script {
                     def scannerHome = tool 'sonarqube-endpoint-tool'
-                    withSonarQubeEnv('sonarqube-endpoint') {
-                        bat "set PATH=%PATH%;${scannerHome}\\bin && sonar-scanner.bat"
+                    withEnv(["PATH+SONAR=${scannerHome}\\bin"]) {
+                        withSonarQubeEnv('sonarqube-endpoint') {
+                            bat 'sonar-scanner.bat'
+                        }
                     }
                 }
             }
