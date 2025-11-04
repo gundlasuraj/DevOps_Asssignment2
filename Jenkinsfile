@@ -49,9 +49,13 @@ pipeline {
                 'hudson.plugins.sonar.SonarRunnerInstallation' 'sonarqube-endpoint-tool'
             }
             steps {
-                withSonarQubeEnv('sonarqube-endpoint') {
-                    // The scanner executable is now in the PATH
-                    bat 'sonar-scanner.bat'
+                // Manually set the PATH to include the SonarQube Scanner's bin directory.
+                // This is a more robust method on Windows agents.
+                script {
+                    def scannerHome = tool 'sonarqube-endpoint-tool'
+                    withSonarQubeEnv('sonarqube-endpoint') {
+                        bat "set PATH=%PATH%;${scannerHome}\\bin && sonar-scanner.bat"
+                    }
                 }
             }
         }
