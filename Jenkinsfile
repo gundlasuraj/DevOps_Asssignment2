@@ -46,7 +46,7 @@ pipeline {
             agent any
             tools {
                 // This name must match the name of the SonarQube Scanner tool in Global Tool Configuration
-                hudson.plugins.sonar.SonarRunnerInstallation 'sonar-scanner'
+                sonar 'sonar-scanner'
             }
             steps {
                 // 'sonar-scanner' must be configured in Jenkins > Global Tool Configuration
